@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: leogloriainfnet/ufodb
+    container_name: ufology-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devops2025!
+      POSTGRES_DB: ufology
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ufology-network
+
+  redis:
+    image: redis:alpine
+    container_name: ufology-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - ufology-network
+
+  app:
+    build: .
+    container_name: ufology-app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_NAME: ufology
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: devops2025!
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ufology-network
+
+networks:
+  ufology-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

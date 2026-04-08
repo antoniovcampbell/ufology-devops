@@ -1,0 +1,81 @@
+name: Maven CI with Artifact Management
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Configurar JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Build com Maven
+      run: mvn clean package -DskipTests
+    
+    - name: Upload do artefato JAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: application-jar
+        path: target/*.jar
+        retention-days: 5
+        if-no-files-found: error
+
+  verify-artifact:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Download do artefato
+      uses: actions/download-artifact@v4
+      with:
+        name: application-jar
+    
+    - name: Listar artefatos baixados
+      run: |
+        echo "Artefatos baixados:"
+        ls -lh
+    
+    - name: Verificar integridade do JAR
+      run: |
+        JAR_FILE=$(find . -name "*.jar" | head -n 1)
+        if [ -z "$JAR_FILE" ]; then
+          echo "::error::Nenhum arquivo JAR encontrado!"
+          exit 1
+        fi
+        
+        echo "Verificando arquivo: $JAR_FILE"
+        FILE_SIZE=$(stat -f%z "$JAR_FILE" 2>/dev/null || stat -c%s "$JAR_FILE")
+        
+        if [ "$FILE_SIZE" -lt 1000 ]; then
+          echo "::error::Arquivo JAR muito pequeno ($FILE_SIZE bytes). Possível problema no build."
+          exit 1
+        fi
+        
+        echo "::notice::Artefato verificado com sucesso! Tamanho: $FILE_SIZE bytes"
+        
+    - name: Validar estrutura do JAR
+      run: |
+        JAR_FILE=$(find . -name "*.jar" | head -n 1)
+        
+        # Instalar unzip se necessário
+        if ! command -v unzip &> /dev/null; then
+          apt-get update && apt-get install -y unzip
+        fi
+        
+        # Listar conteúdo do JAR
+        echo "Conteúdo do JAR:"
+        unzip -l "$JAR_FILE" | head -n 20
+        
+        # Ver

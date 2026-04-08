@@ -1,0 +1,15 @@
+name: Job Summary Demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create summary
+        run: |
+          echo "## Resumo da Execução" >> $GITHUB_STEP_SUMMARY
+          echo "- Data: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Workflow: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: Sucesso" >> $GITHUB_STEP_SUMMARY
